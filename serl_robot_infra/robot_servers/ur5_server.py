@@ -17,10 +17,10 @@ from dynamic_reconfigure.client import Client as ReconfClient
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "robot_ip", "172.16.0.2", "IP address of the franka robot's controller box"
+    "robot_ip", "192.168.50.146", "IP address of the franka robot's controller box"
 )
 flags.DEFINE_string(
-    "gripper_ip", "192.168.1.114", "IP address of the robotiq gripper if being used"
+    "gripper_ip", "192.168.50.146", "IP address of the robotiq gripper if being used"
 )
 flags.DEFINE_string(
     "gripper_type", "Robotiq", "Type of gripper to use: Robotiq, Franka, or None"
