@@ -32,7 +32,7 @@ flags.DEFINE_list(
 )
 
 
-class FrankaServer:
+class UR5Server:
     """Handles the starting and stopping of the impedance controller
     (as well as backup) joint recovery policy."""
 
@@ -207,7 +207,7 @@ def main(_):
         raise NotImplementedError("Gripper Type Not Implemented")
 
     """Starts impedance controller"""
-    robot_server = FrankaServer(
+    robot_server = UR5Server(
         robot_ip=ROBOT_IP,
         gripper_type=GRIPPER_TYPE,
         ros_pkg_name=ROS_PKG_NAME,

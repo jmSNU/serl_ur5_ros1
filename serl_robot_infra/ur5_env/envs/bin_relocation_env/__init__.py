@@ -1,0 +1,1 @@
+from ur5_env.envs.bin_relocation_env.ur5_bin_relocation import UR5BinRelocation
