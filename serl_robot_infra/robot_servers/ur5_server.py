@@ -10,7 +10,8 @@ import subprocess
 from scipy.spatial.transform import Rotation as R
 from absl import app, flags
 
-from franka_msgs.msg import ErrorRecoveryActionGoal, FrankaState
+from ur_dashboard_msgs.msg import SetModeActionGoal, RobotMode
+from ur_msgs.msg import RobotStateRTMsg
 from serl_franka_controllers.msg import ZeroJacobian
 import geometry_msgs.msg as geom_msg
 from dynamic_reconfigure.client import Client as ReconfClient
@@ -48,7 +49,7 @@ class UR5Server:
             queue_size=10,
         )
         self.resetpub = rospy.Publisher(
-            "/franka_control/error_recovery/goal", ErrorRecoveryActionGoal, queue_size=1
+            "/franka_control/error_recovery/goal", SetModeActionGoal, queue_size=1
         )
         self.jacobian_sub = rospy.Subscriber(
             "/cartesian_impedance_controller/franka_jacobian",
@@ -56,7 +57,7 @@ class UR5Server:
             self._set_jacobian,
         )
         self.state_sub = rospy.Subscriber(
-            "franka_state_controller/franka_states", FrankaState, self._set_currpos
+            "franka_state_controller/franka_states", RobotStateRTMsg, self._set_currpos
         )
 
     def start_impedance(self):
@@ -78,9 +79,11 @@ class UR5Server:
         self.imp.terminate()
         time.sleep(1)
 
+    # TODO : ErrorRecoveryActionGoal -> SetModeActionGoal
     def clear(self):
         """Clears any errors"""
-        msg = ErrorRecoveryActionGoal()
+        msg = SetModeActionGoal()
+        msg.goal.target_robot_mode.mode = RobotMode.RUNNING
         self.resetpub.publish(msg)
 
     def reset_joint(self):
@@ -149,22 +152,30 @@ class UR5Server:
         msg.pose.orientation = geom_msg.Quaternion(pose[3], pose[4], pose[5], pose[6])
         self.eepub.publish(msg)
 
+    # TODO : FrankaState msg -> RobotStateRTMsg msg
     def _set_currpos(self, msg):
-        tmatrix = np.array(list(msg.O_T_EE)).reshape(4, 4).T
-        r = R.from_matrix(tmatrix[:3, :3])
-        pose = np.concatenate([tmatrix[:3, -1], r.as_quat()])
+        tcp_position = np.array(msg.tool_vector[:3])
+        tcp_orientation = np.array(msg.tool_vector[3:])  # Quaternion (x, y, z, w)
+        r = R.from_quat(tcp_orientation)
+
+        tmatrix = np.eye(4)
+        tmatrix[:3, :3] = r.as_matrix()
+        tmatrix[:3, 3] = tcp_position
+
+        pose = np.concatenate([tcp_position, tcp_orientation])
         self.pos = pose
-        self.dq = np.array(list(msg.dq)).reshape((7,))
-        self.q = np.array(list(msg.q)).reshape((7,))
-        self.force = np.array(list(msg.K_F_ext_hat_K)[:3])
-        self.torque = np.array(list(msg.K_F_ext_hat_K)[3:])
+
+        self.q = np.array(msg.q_actual).reshape((6,))
+        self.dq = np.array(msg.qd_actual).reshape((6,))
+
+        self.force = np.array(msg.tcp_force[:3])
+        self.torque = np.array(msg.tcp_force[3:])
+
         try:
             self.vel = self.jacobian @ self.dq
-        except:
+        except Exception as e:
             self.vel = np.zeros(6)
-            rospy.logwarn(
-                "Jacobian not set, end-effector velocity temporarily not available"
-            )
+            rospy.logwarn("Jacobian not set, end-effector velocity temporarily not available")
 
     def _set_jacobian(self, msg):
         jacobian = np.array(list(msg.zero_jacobian)).reshape((6, 7), order="F")
