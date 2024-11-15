@@ -15,6 +15,8 @@ from ur_msgs.msg import RobotStateRTMsg
 from serl_franka_controllers.msg import ZeroJacobian
 import geometry_msgs.msg as geom_msg
 from dynamic_reconfigure.client import Client as ReconfClient
+import sys
+sys.path.append('/home/cml/serl_test_ws/serl_ur5_ros1')
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
@@ -66,9 +68,9 @@ class UR5Server:
             [
                 "roslaunch",
                 self.ros_pkg_name,
-                "impedance.launch",
+                "ur5_bringup.launch",
                 "robot_ip:=" + self.robot_ip,
-                f"load_gripper:={'true' if self.gripper_type == 'Franka' else 'false'}",
+                # f"load_gripper:={'true' if self.gripper_type == 'Franka' else 'false'}",
             ],
             stdout=subprocess.PIPE,
         )
@@ -186,7 +188,8 @@ class UR5Server:
 
 
 def main(_):
-    ROS_PKG_NAME = "serl_franka_controllers"
+    # ROS_PKG_NAME = "serl_franka_controllers"
+    ROS_PKG_NAME = "ur_robot_driver"
 
     ROBOT_IP = FLAGS.robot_ip
     GRIPPER_IP = FLAGS.gripper_ip
@@ -205,7 +208,7 @@ def main(_):
     rospy.init_node("franka_control_api")
 
     if GRIPPER_TYPE == "Robotiq":
-        from robot_servers.robotiq_gripper_server import RobotiqGripperServer
+        from serl_robot_infra.robot_servers.robotiq_gripper_server_direct import RobotiqGripperServer
 
         gripper_server = RobotiqGripperServer(gripper_ip=GRIPPER_IP)
     elif GRIPPER_TYPE == "Franka":
@@ -226,9 +229,9 @@ def main(_):
     )
     robot_server.start_impedance()
 
-    reconf_client = ReconfClient(
-        "cartesian_impedance_controllerdynamic_reconfigure_compliance_param_node"
-    )
+    # reconf_client = ReconfClient(
+    #     "cartesian_impedance_controllerdynamic_reconfigure_compliance_param_node"
+    # )
 
     # Route for Starting impedance
     @webapp.route("/startimp", methods=["POST"])
@@ -303,14 +306,9 @@ def main(_):
         print("reset gripper")
         gripper_server.reset_gripper()
         return "Reset"
-
-    # Route for Opening the Gripper
-    @webapp.route("/open_gripper", methods=["POST"])
-    def open():
-        print("open")
-        gripper_server.open()
-        return "Opened"
-
+    # reconf_client = ReconfClient(
+    #     "cartesian_impedance_controllerdynamic_reconfigure_compliance_param_node"
+    # )
     # Route for Closing the Gripper
     @webapp.route("/close_gripper", methods=["POST"])
     def close():
@@ -363,7 +361,8 @@ def main(_):
         reconf_client.update_configuration(request.json)
         return "Updated compliance parameters"
 
-    webapp.run(host="0.0.0.0")
+    webapp.run(host="0.0.0.0", debug=True)
+    print("Hello Webapp")
 
 
 if __name__ == "__main__":
