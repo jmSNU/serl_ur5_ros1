@@ -1,4 +1,4 @@
-from robot_servers.gripper_server import GripperServer
+from gripper_server import GripperServer
 import socket
 import threading
 import time
@@ -38,7 +38,7 @@ class RobotiqGripperServer(GripperServer):
         AT_DEST = 3
 
     def __init__(self, gripper_ip):
-        super.__init__()
+        super().__init__()
         self.socket = None
         self.command_lock = threading.Lock()
         self._min_position = 0
@@ -59,13 +59,14 @@ class RobotiqGripperServer(GripperServer):
     @staticmethod
     def _is_ack(data: str):
         return data == b'ack'
-
-    def _set_vars(self, var_dict : OrderedDict[str, Union[int, float]]) :
+    
+    def _set_vars(self, var_dict: OrderedDict[str, Union[int, float]]):
+        # construct unique command
         cmd = "SET"
-        for variable, value in var_dict.item():
-            cmd+=f"{variable} {str(value)}"
-        cmd += "\n"
-
+        for variable, value in var_dict.items():
+            cmd += f" {variable} {str(value)}"
+        cmd += '\n'  # new line is required for the command to finish
+        # atomic commands send/rcv
         with self.command_lock:
             self.socket.sendall(cmd.encode(self.ENCODING))
             data = self.socket.recv(1024)
