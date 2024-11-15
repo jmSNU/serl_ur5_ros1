@@ -1,6 +1,6 @@
 import robotiq_gripper_server_direct
 
-ip = "127.0.0.1"
+ip = "192.168.50.146"
 port = 63352
 
 def log_info(gripper):
@@ -9,11 +9,11 @@ def log_info(gripper):
           f"Closed: {gripper.is_closed(): <2}  ")
 
 print("Creating gripper...")
-gripper = robotiq_gripper_server_direct.RobotiqGripper()
+gripper = robotiq_gripper_server_direct.RobotiqGripperServer(gripper_ip = ip)
 print("Connecting to gripper...")
-gripper.connect(ip, port)
+gripper._connect(ip, port)
 print("Activating gripper...")
-gripper.activate()
+gripper.activate_gripper()
 
 print("Testing gripper...")
 gripper.move_and_wait_for_pos(255, 255, 255)
