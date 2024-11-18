@@ -70,6 +70,7 @@ class UR5Server:
                 self.ros_pkg_name,
                 "ur5_bringup.launch",
                 "robot_ip:=" + self.robot_ip,
+                "kinematics_config:=/home/cml/my_robot_calibration.yaml"
                 # f"load_gripper:={'true' if self.gripper_type == 'Franka' else 'false'}",
             ],
             stdout=subprocess.PIPE,
@@ -296,6 +297,7 @@ def main(_):
     # Route for Activating the Gripper
     @webapp.route("/activate_gripper", methods=["POST"])
     def activate_gripper():
+        gripper_server._connect(gripper_ip = GRIPPER_IP, port = 63352)
         print("activate gripper")
         gripper_server.activate_gripper()
         return "Activated"
@@ -361,7 +363,7 @@ def main(_):
         reconf_client.update_configuration(request.json)
         return "Updated compliance parameters"
 
-    webapp.run(host="0.0.0.0", debug=True)
+    webapp.run(host="0.0.0.0", debug=False)
     print("Hello Webapp")
 
 
